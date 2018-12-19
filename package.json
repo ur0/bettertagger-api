@@ -1,0 +1,33 @@
+{
+  "name": "bettertagger-api",
+  "version": "1.0.0",
+  "description": "API for BetterTagger.",
+  "engines": {
+    "node": ">=8.11.4"
+  },
+  "main": "dist/index.js",
+  "repository": "https://github.com/ur0/bettertagger-api/",
+  "author": "Umang Raghuvanshi <u@umangis.me>",
+  "license": "MIT",
+  "private": false,
+  "devDependencies": {
+    "@types/es6-shim": "^0.31.39",
+    "@types/express": "^4.16.0",
+    "@types/memjs": "^1.2.0",
+    "@types/request": "^2.48.1",
+    "@types/request-promise": "^4.1.42",
+    "typescript": "^3.2.2"
+  },
+  "dependencies": {
+    "eslint": "^5.10.0",
+    "express": "^4.16.4",
+    "global": "^4.3.2",
+    "memjs": "^1.2.0",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2",
+    "typescript-formatter": "^7.2.2"
+  },
+  "scripts": {
+    "start": "node dist/index.js"
+  }
+}
