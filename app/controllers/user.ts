@@ -10,8 +10,8 @@ router.get('/:username', (req: Request, res: Response) => {
     const { username } = req.params;
 
     res.type('application/json');
-    fetchOrGetSubInfo(username, (subInfo => {
-        subInfo.catch(err => {
+    getScore(username, (scoreInfo => {
+        scoreInfo.catch(err => {
             console.error(`Error fetching subInfo for ${username}: ${err}`)
             res.status(500);
             res.end();
@@ -22,17 +22,17 @@ router.get('/:username', (req: Request, res: Response) => {
     }));
 });
 
-const fetchOrGetSubInfo = (username: string, callback: (subInfo: Promise<string>) => any) => {
-    memcached.get(username, (err, subinfo) => {
-        if (subinfo != null) {
+const getScore = (username: string, callback: (subInfo: Promise<string>) => any) => {
+    memcached.get(username, (err, scoreInfo) => {
+        if (scoreInfo != null) {
             console.log(`Cache hit for ${username}`);
-            callback(resolve(subinfo.toString('utf8')));
+            callback(resolve(scoreInfo.toString('utf8')));
         }
         else if (err == null) {
             console.log(`Cache miss for ${username}`);
-            getSubInfo(username).then(subInfo => {
-                memcached.set(username, subInfo, { expires: 3600 * 24 }, () => { });
-                callback(resolve(subInfo));
+            getScoreFromReddit(username).then(scoreInfo => {
+                memcached.set(username, scoreInfo, { expires: 3600 * 24 }, () => { });
+                callback(resolve(scoreInfo));
             })
         } else {
             callback(reject("MemCached error"))
@@ -40,7 +40,7 @@ const fetchOrGetSubInfo = (username: string, callback: (subInfo: Promise<string>
     })
 }
 
-const getSubInfo = async (username: string): Promise<string> => {
+const getScoreFromReddit = async (username: string): Promise<string> => {
     const commentsAPIURL = `https://www.reddit.com/user/${username}/comments.json?limit=100`;
     const APIresponse = JSON.parse(await request.get(commentsAPIURL));
 
