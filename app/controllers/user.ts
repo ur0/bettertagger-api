@@ -46,9 +46,9 @@ const getSubInfo = async (username: string): Promise<string> => {
 
         if (sub != null) {
             if (subs[sub[1]] != undefined)
-                subs[sub[1]]++;
+                subs[sub[1]] += comment.score;
             else
-                subs[sub[1]] = 1;
+                subs[sub[1]] = comment.score;
         }
     });
 
