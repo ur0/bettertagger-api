@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import * as memjs from 'memjs';
 import * as request from 'request-promise';
+import { resolve, reject } from 'bluebird';
 
 const memcached = memjs.Client.create(process.env.MEMCACHIER_SERVERS);
 const router: Router = Router();
@@ -9,28 +10,35 @@ router.get('/:username', (req: Request, res: Response) => {
     const { username } = req.params;
 
     res.type('application/json');
+    fetchOrGetSubInfo(username, (subInfo => {
+        subInfo.catch(err => {
+            console.error(`Error fetching subInfo for ${username}: ${err}`)
+            res.status(500);
+            res.end();
+        }).then(subInfo => {
+            res.write(subInfo);
+            res.end();
+        })
+    }));
+});
+
+const fetchOrGetSubInfo = (username: string, callback: (subInfo: Promise<string>) => any) => {
     memcached.get(username, (err, subinfo) => {
         if (subinfo != null) {
             console.log(`Cache hit for ${username}`);
-            res.write(subinfo.toString('utf8'));
-            res.end();
+            callback(resolve(subinfo.toString('utf8')));
         }
         else if (err == null) {
             console.log(`Cache miss for ${username}`);
             getSubInfo(username).then(subInfo => {
                 memcached.set(username, subInfo, { expires: 3600 * 24 }, () => { });
-                res.write(subInfo);
-                res.end()
-            }).catch(() => {
-                res.status(500);
-                res.end()
+                callback(resolve(subInfo));
             })
         } else {
-            console.error(`MemCached error: ${err.toString()}`);
-            process.exit(-1);
+            callback(reject("MemCached error"))
         }
     })
-});
+}
 
 const getSubInfo = async (username: string): Promise<string> => {
     const commentsAPIURL = `https://www.reddit.com/user/${username}/comments.json?limit=100`;
