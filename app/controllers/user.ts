@@ -8,6 +8,7 @@ const router: Router = Router();
 router.get('/:username', (req: Request, res: Response) => {
     const { username } = req.params;
 
+    res.type('application/json');
     memcached.get(username, (err, subinfo) => {
         if (subinfo != null) {
             console.log(`Cache hit for ${username}`);
