@@ -58,11 +58,15 @@ const getScore = (
       callback(resolve(JSON.parse(scoreInfo.toString("utf8"))));
     } else if (err == null) {
       console.log(`Cache miss for ${username}`);
-      getScoreFromReddit(username).then(scoreInfo => {
-        let info = JSON.stringify(scoreInfo);
-        memcached.set(username, info, { expires: 3600 * 24 }, () => {});
-        callback(resolve(scoreInfo));
-      });
+      getScoreFromReddit(username)
+        .then(scoreInfo => {
+          let info = JSON.stringify(scoreInfo);
+          memcached.set(username, info, { expires: 3600 * 24 }, () => {});
+          callback(resolve(scoreInfo));
+        })
+        .catch(e => {
+          callback(reject(e));
+        });
     } else {
       callback(reject("MemCached error"));
     }
