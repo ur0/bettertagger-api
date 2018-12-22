@@ -18,24 +18,49 @@ router.get("/:username", (req: Request, res: Response) => {
         res.end();
       })
       .then(subInfo => {
-        res.write(subInfo);
+        res.write(JSON.stringify(subInfo));
         res.end();
       });
   });
 });
 
+router.post("/", (req: Request, res: Response) => {
+  const dupeUsers: [string] = req.body;
+  const usernames = dupeUsers.filter((x, i, a) => a.indexOf(x) == i);
+
+  let scores: { [key: string]: { [key: string]: number } } = {};
+  res.type("application/json");
+
+  usernames.forEach(username => {
+    getScore(username, scoreInfo => {
+      scoreInfo
+        .catch(err => {
+          console.error(`Error fetching subInfo for ${username}: ${err}`);
+        })
+        .then(scoreInfo => {
+          scores[username] = scoreInfo;
+          if (Object.keys(scores).length == usernames.length) {
+            res.write(JSON.stringify(scores));
+            res.end();
+          }
+        });
+    });
+  });
+});
+
 const getScore = (
   username: string,
-  callback: (subInfo: Promise<string>) => any
+  callback: (scoreInfo: Promise<{ [key: string]: number }>) => any
 ) => {
   memcached.get(username, (err, scoreInfo) => {
     if (scoreInfo != null) {
       console.log(`Cache hit for ${username}`);
-      callback(resolve(scoreInfo.toString("utf8")));
+      callback(resolve(JSON.parse(scoreInfo.toString("utf8"))));
     } else if (err == null) {
       console.log(`Cache miss for ${username}`);
       getScoreFromReddit(username).then(scoreInfo => {
-        memcached.set(username, scoreInfo, { expires: 3600 * 24 }, () => {});
+        let info = JSON.stringify(scoreInfo);
+        memcached.set(username, info, { expires: 3600 * 24 }, () => {});
         callback(resolve(scoreInfo));
       });
     } else {
@@ -44,11 +69,14 @@ const getScore = (
   });
 };
 
-const getScoreFromReddit = async (username: string): Promise<string> => {
+const getScoreFromReddit = async (
+  username: string
+): Promise<{ [key: string]: number }> => {
   const commentsAPIURL = `https://www.reddit.com/user/${username}/comments.json?limit=100`;
   const APIresponse = JSON.parse(await request.get(commentsAPIURL));
 
-  if (!APIresponse || !APIresponse["data"]) return '{"status": "API error"}';
+  if (!APIresponse || !APIresponse["data"])
+    return reject('{"status": "API error"}');
 
   let subs: { [key: string]: number } = {};
 
@@ -64,7 +92,7 @@ const getScoreFromReddit = async (username: string): Promise<string> => {
       }
     });
 
-  return JSON.stringify(subs);
+  return subs;
 };
 
 export default router;
